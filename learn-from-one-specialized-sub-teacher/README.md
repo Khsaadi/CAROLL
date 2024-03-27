@@ -47,7 +47,6 @@ Run command below to get distilled student model for every task of GLUE:
 **Results**
 
 On the GLUE development set:
-
-
+<img width="1076" alt="results" src="https://github.com/Khsaadi/CAROLL/assets/58224339/354983a0-538e-4344-b5e0-4a8c394dcd79">
 
 
