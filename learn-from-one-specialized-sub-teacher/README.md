@@ -48,6 +48,6 @@ Run command below to get distilled student model for every task of GLUE:
 
 On the GLUE development set:
 
-![avatar](./submissions.png)
+
 
 
