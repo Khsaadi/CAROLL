@@ -21,16 +21,32 @@ Run command below to get GLUE data:
 python download_glue_data.py --data_dir glue_data --task all
 ```
 
+Run command below to get SQUAD-V1 data:
+
+```
+
+```
+
+Run command below to get IMDB data:
+
+```
+
+```
+
 **Student Initialization**
 
-Download the 6-layer [general TinyBERT](https://huggingface.co/huawei-noah/TinyBERT_General_6L_768D) model as the initial student model, and unzip it to directory `./tinybert/TinyBERT_General_6L_768D`
+
 
 **Fine-tuning**
 
 Run command below to get fine-tuned teacher model for every task of GLUE:
 
 ```
-# RTE
+# GLUE
+
+# SQUAD
+
+# IMDB
 
 ```
 
@@ -41,6 +57,9 @@ Run command below to get distilled student model for every task of GLUE:
 ```
 # RTE
 
+# SQUAD
+
+# IMDB
 
 ```
 
