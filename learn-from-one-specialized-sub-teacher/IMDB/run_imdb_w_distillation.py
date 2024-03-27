@@ -25,8 +25,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using transformers v{transformers.__version__} and datasets v{datasets.__version__}")
 print(f"Running on device: {device}")
 
-parser = argparse.ArgumentParser()
-args = parser.parse_args()
+
 # Function to compute the evaluation metric
 def compute_metrics(eval_pred):
     accuracy = evaluate.load("accuracy")
@@ -43,11 +42,19 @@ def off_diagonal(x):
     return x.flatten()[:-1].view(n - 1, n + 1)[:, 1:].flatten()
 
 
+
+
 # Distillation Trainer
 class DistillationTrainer(Trainer):
-    def __init__(self, *args, teacher_model=None, **kwargs):
+    def __init__(self, *args, teacher_model=None, alpha_imdb,alpha_ce, alpha_mse, alpha_cos, alpha_corr, temperature,**kwargs):
         super().__init__(*args, **kwargs)
         self.teacher = teacher_model
+        self.alpha_imdb = alpha_imdb
+        self.alpha_ce = alpha_ce
+        self.alpha_mse = alpha_mse
+        self.alpha_cos = alpha_cos
+        self.alpha_corr = alpha_corr
+        self.temperature = temperature
         self.teacher.eval() # teacher is in the eval mode
         self.train_dataset.set_format(
             type=self.train_dataset.format["type"], columns=list(self.train_dataset.features.keys()))
@@ -67,22 +74,22 @@ class DistillationTrainer(Trainer):
                 input_ids=inputs["input_ids"],
                 attention_mask=inputs["attention_mask"], output_hidden_states=True) # , labels=inputs["labels"]
 
-        loss = args.alpha_imdb * loss
-        assert args.alpha_ce >= 0.0
-        assert args.alpha_corr >= 0.0
-        assert args.alpha_mse >= 0.0
-        assert args.alpha_cos >= 0.0
-        assert args.alpha_imdb >= 0.0
-        assert args.alpha_ce + args.alpha_corr + args.alpha_imdb + args.alpha_mse + args.alpha_cos > 0.0
 
-        if args.alpha_ce > 0.0:
+        assert self.alpha_ce >= 0.0
+        assert self.alpha_corr >= 0.0
+        assert self.alpha_mse >= 0.0
+        assert self.alpha_cos >= 0.0
+        assert self.alpha_imdb >= 0.0
+        assert self.alpha_ce + self.alpha_corr + self.alpha_imdb + self.alpha_mse + self.alpha_cos > 0.0
+        loss = self.alpha_imdb * loss
+        if self.alpha_ce > 0.0:
             logits_stu = outputs_stu.logits
             logits_tea = outputs_tea.logits
             loss_fct = nn.KLDivLoss(reduction="batchmean")
             loss_logits = (loss_fct(
-                F.log_softmax(logits_stu / args.temperature, dim=-1),
-                F.softmax(logits_tea / args.temperature, dim=-1)) * (args.temperature ** 2))
-            loss = loss + args.alpha_ce * loss_logits
+                F.log_softmax(logits_stu / self.temperature, dim=-1),
+                F.softmax(logits_tea / self.temperature, dim=-1)) * (self.temperature ** 2))
+            loss = loss + self.alpha_ce * loss_logits
 
         outputs_stu_hidden_states = outputs_stu.hidden_states
         outputs_tea_hidden_states = outputs_tea.hidden_states
@@ -98,25 +105,25 @@ class DistillationTrainer(Trainer):
         t_hidden_states_slct = torch.masked_select(t_hidden_states, mask)  # (bs * seq_length * dim)
         z2 = t_hidden_states_slct.view(-1, dim)  # (bs * seq_length, dim)
 
-        if args.alpha_corr>0.0:
+        if self.alpha_corr>0.0:
             z1_norm = (z1 - torch.mean(z1, dim=0)) / torch.std(z1, dim=0)
             z2_norm = (z2 - torch.mean(z2, dim=0)) / torch.std(z2, dim=0)
             cross_corr = torch.matmul(z1_norm.T, z2_norm) / t_hidden_states_slct.size(0)
             on_diag = torch.diagonal(cross_corr).add_(-1).pow_(2).sum()
             off_diag = off_diagonal(cross_corr).pow_(2).sum()
             loss_corr = on_diag + (5e-3 * off_diag)
-            loss = loss + args.alpha_corr * loss_corr
+            loss = loss + self.alpha_corr * loss_corr
 
-        if args.alpha_cos > 0.0:
+        if self.alpha_cos > 0.0:
             target = z1.new(s_hidden_states_slct.size(0)).fill_(1)
             cosine_loss_fct = nn.CosineEmbeddingLoss(reduction="mean")
             loss_cos = cosine_loss_fct(s_hidden_states_slct, t_hidden_states_slct, target)
-            loss = loss + args.alpha_cos * loss_cos
+            loss = loss + self.alpha_cos * loss_cos
 
-        if args.alpha_mse > 0.0:
+        if self.alpha_mse > 0.0:
             mse_loss_fct = nn.MSELoss(reduction='mean')
             loss_mse = mse_loss_fct(z1, z2)
-            loss = loss + args.alpha_mse * loss_mse
+            loss = loss + self.alpha_mse * loss_mse
 
         return  (loss, outputs_stu) if return_outputs else loss
    
@@ -127,7 +134,7 @@ def main():
     """
     Arguments pertaining to which model/config/tokenizer we are going to fine-tune from.
     """
-
+    parser = argparse.ArgumentParser()
     parser.add_argument(
         "--student_model_name_or_path",
         default=None,
@@ -169,19 +176,19 @@ def main():
         "--temperature", default=2.0, type=float, help="Distillation temperature. Only for distillation."
     )
     parser.add_argument(
-        "--alpha_ce", default=0.5, type=float, help="the weight of the logit distillation loss."
+        "--alpha_ce", default=0.0, type=float, help="the weight of the logit distillation loss."
     )
     parser.add_argument(
         "--alpha_corr", default=0.005, type=float, help="The weight of the our proposed correlation loss for feature distillation."
     )
     parser.add_argument(
-        "--alpha_mse", default=0.5, type=float, help="The mean square error loss for feature distillation."
+        "--alpha_mse", default=0.0, type=float, help="The mean square error loss for feature distillation."
     )
     parser.add_argument(
-        "--alpha_cos", default=0.5, type=float, help="The cosine distance loss for feature distillation."
+        "--alpha_cos", default=0.0, type=float, help="The cosine distance loss for feature distillation."
     )
     parser.add_argument("--learning_rate", default=5e-5, type=float, help="The initial learning rate for Adam.")
-
+    args = parser.parse_args()
 
     # Process the data
     # Download the data and the student model
@@ -237,6 +244,12 @@ def main():
     distil_trainer = DistillationTrainer(
         model=student_model,
         teacher_model=teacher_model,
+        alpha_imdb=args.alpha_imdb,
+        alpha_ce=args.alpha_ce,
+        alpha_mse=args.alpha_mse,
+        alpha_cos=args.alpha_cos,
+        alpha_corr=args.alpha_corr,
+        temperature=args.temperature,
         args=student_training_args,
         train_dataset=train_ds,
         tokenizer=student_tokenizer,

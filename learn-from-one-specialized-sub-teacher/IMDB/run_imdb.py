@@ -1,7 +1,7 @@
 
 # import packages
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]= "1" # use the gpu number 1
+os.environ["CUDA_VISIBLE_DEVICES"]= "6" # use the gpu number 1
 device ="cuda"
 import numpy as np
 from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer,AutoTokenizer
@@ -24,7 +24,6 @@ def compute_metrics(eval_pred):
 def main():
     # Download dataset
     parser = argparse.ArgumentParser()
-    args = parser.parse_args()
     parser.add_argument(
         "--model",
         default=None,
@@ -54,8 +53,9 @@ def main():
     )
     parser.add_argument("--learning_rate", default=5e-5, type=float, help="The initial learning rate for Adam.")
 
+    args = parser.parse_args()
     imdb = load_dataset("imdb")
-    model = args.model# "bert-base-uncased"
+    model = args.model  # ""
     tokenizer = AutoTokenizer.from_pretrained(model)
 
     # Preprocess dataset
@@ -74,14 +74,14 @@ def main():
 
     # Define the training args
     training_args = TrainingArguments(
-        output_dir= args.output_dir_imtermed, #"bert_model_fine_tuned_on_imdb"
-        learning_rate= args.learning_rate, # 5e-5,  # 2e-5,
-        per_device_train_batch_size= args.batch_size,  #16,
-        per_device_eval_batch_size=args.batch_size, #16,
-        num_train_epochs=args.num_train_epochs, # 3,
+        output_dir= args.output_dir_intermed,
+        learning_rate= args.learning_rate,
+        per_device_train_batch_size= args.batch_size,
+        per_device_eval_batch_size=args.batch_size,
+        num_train_epochs=args.num_train_epochs,
         weight_decay=0,
         save_strategy="no",
-        do_eval=False, #  3 ,
+        do_eval=False,
     )
 
     # Define the trainer
@@ -96,10 +96,10 @@ def main():
 
     # Train and save the model
     trainer.train()
-    trainer.save_model(args.output_dir) # 'bert_models/bert_model_fine_tuned_on_imdb')
+    trainer.save_model(args.output_dir)
 
     # Eval
-    model_checkpoint = args.output_dir # 'bert_models/bert_model_fine_tuned_on_imdb'
+    model_checkpoint = args.output_dir
     model_tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
     model_finetuned = AutoModelForSequenceClassification.from_pretrained(model_checkpoint, num_labels=2,
                                                                          id2label=id2label, label2id=label2id)

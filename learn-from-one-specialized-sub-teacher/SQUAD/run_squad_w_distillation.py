@@ -3,7 +3,7 @@
 
 # Import packages
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]= "5" # choose gpu
+os.environ["CUDA_VISIBLE_DEVICES"]= "3" # choose gpu
 device ="cuda"
 import argparse
 import glob
@@ -534,12 +534,14 @@ def main():
         help="Path to the already SQuAD fine-tuned teacher model. Only for distillation.",
     )
     parser.add_argument(
-        "--alpha_ce", default=0.5, type=float, help="Distillation loss linear weight. Only for distillation."
+        "--alpha_ce", default=0.0, type=float, help="Distillation loss linear weight. Only for distillation."
     )
     parser.add_argument(
-        "--alpha_cos", default=0.5, type=float, help="Distillation cos embedding loss linear weight. Only for distillation."
+        "--alpha_cos", default=0.0, type=float, help="Distillation cos embedding loss linear weight. Only for distillation."
     )
-
+    parser.add_argument(
+        "--alpha_mse", default=0.0, type=float, help="Distillation mse loss linear weight. Only for distillation."
+    )
     parser.add_argument(
         "--alpha_corr", default=0.5, type=float, help="Distillation correlation embedding loss linear weight. Only for distillation."
     )

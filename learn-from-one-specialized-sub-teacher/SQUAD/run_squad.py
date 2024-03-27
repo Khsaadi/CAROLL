@@ -24,8 +24,8 @@ print(f"Running on device: {device}")
 
 
 if __name__ == "__main__":
+
         parser = argparse.ArgumentParser()
-        args = parser.parse_args()
         parser.add_argument(
             "--model",
             default=None,
@@ -54,6 +54,7 @@ if __name__ == "__main__":
             "--batch_size", default=16, type=int, help="The training and testing batch size."
         )
         parser.add_argument("--learning_rate", default=2e-5, type=float, help="The initial learning rate for Adam.")
+        args = parser.parse_args()
 
         # Process the data
         squad_ds = load_dataset("squad")
