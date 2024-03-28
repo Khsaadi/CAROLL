@@ -39,7 +39,7 @@ Run command below to get IMDB data:
 
 **Fine-tuning**
 
-Run command below to get fine-tuned teacher model for every task of GLUE:
+Run command below to get fine-tuned teacher model for every task of GLUE, SQUAD-V1, and IMDB:
 
 ```
 # GLUE
@@ -52,7 +52,7 @@ Run command below to get fine-tuned teacher model for every task of GLUE:
 
 **Distillation**
 
-Run command below to get distilled student model for every task of GLUE:
+Run command below to get distilled student model for every task of GLUE,SQUAD-V1, and IMDB:
 
 ```
 # RTE
