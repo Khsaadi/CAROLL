@@ -18,6 +18,7 @@ pip install -r requirements.txt
 Run command below to get GLUE data:
 
 ```
+cd GLUE
 python download_glue_data.py --data_dir glue_data --task all
 ```
 
